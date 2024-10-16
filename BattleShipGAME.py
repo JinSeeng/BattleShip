@@ -2,6 +2,26 @@ import random
 import json
 import os
 
+class Joueur:
+    """Classe pour représenter un joueur."""
+    def __init__(self, nom):
+        self.nom = nom
+        self.parties_jouees = 0
+        self.victoires = 0
+        self.defaites = 0
+
+    def mettre_a_jour_statistiques(self, gagne):
+        """Met à jour les statistiques du joueur après une partie."""
+        self.parties_jouees += 1
+        if gagne:
+            self.victoires += 1
+        else:
+            self.defaites += 1
+
+    def __repr__(self):
+        return f"{self.nom}: {self.victoires} victoires, {self.defaites} défaites, {self.parties_jouees} parties jouées"
+
+
 def initialiser_grille():
     """Crée une grille de 10x10 vide pour le jeu"""
     return [[' ' for _ in range(10)] for _ in range(10)]
@@ -21,6 +41,7 @@ def convertir_coordonnees(lettre, chiffre):
 
 def demander_position_bateau(nom_bateau, taille_bateau):
     """Demande au joueur de placer un bateau sur la grille"""
+    print(f"Placement du bateau : {nom_bateau} (Taille : {taille_bateau})")
     while True:
         orientation = input("Orientation (H pour horizontal, V pour vertical) : ").upper()
         if orientation in ['H', 'V']:
@@ -156,51 +177,54 @@ def placer_bateaux_automatique(grille):
     for taille in tailles_bateaux:
         placer_bateau_aleatoire(grille, taille)
 
-def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2):
-    """Sauvegarde l'état actuel du jeu dans un fichier JSON"""
-    etat_partie = {
-        "grille_joueur1": grille_joueur1,
-        "grille_joueur2": grille_joueur2,
-        "grille_tirs_joueur1": grille_tirs_joueur1,
-        "grille_tirs_joueur2": grille_tirs_joueur2
-    }
-    with open("sauvegarde.json", "w") as fichier:
-        json.dump(etat_partie, fichier)
+def sauvegarder_statistiques(joueurs):
+    """Sauvegarde les statistiques des joueurs dans un fichier JSON."""
+    with open('statistiques.json', 'w') as fichier:
+        json.dump({joueur.nom: joueur.__dict__ for joueur in joueurs}, fichier)
 
-def charger_partie():
-    """Charge l'état du jeu depuis un fichier JSON"""
-    if os.path.exists("sauvegarde.json"):
-        with open("sauvegarde.json", "r") as fichier:
-            return json.load(fichier)
-    else:
-        print("Aucune sauvegarde trouvée.")
-        return None
+def charger_statistiques():
+    """Charge les statistiques des joueurs depuis un fichier JSON."""
+    if os.path.exists('statistiques.json'):
+        with open('statistiques.json', 'r') as fichier:
+            return {nom: Joueur(nom) for nom, data in json.load(fichier).items()}
+    return {}
+
+def afficher_statistiques(joueurs):
+    """Affiche les statistiques des joueurs."""
+    print("\n--- Statistiques des joueurs ---")
+    for joueur in joueurs.values():
+        print(joueur)
+
+def afficher_classement(joueurs):
+    """Affiche le classement des joueurs basé sur le nombre de victoires."""
+    classement = sorted(joueurs.values(), key=lambda x: x.victoires, reverse=True)
+    print("\n--- Classement des joueurs ---")
+    for rang, joueur in enumerate(classement, start=1):
+        print(f"{rang}. {joueur}")
 
 def jeu_bataille_navale(mode_ia=None):
-    """Jeu principal de bataille navale avec deux joueurs ou contre IA"""
+    """Fonction principale pour le jeu de bataille navale."""
+    joueurs = charger_statistiques()
+
+    nom_joueur1 = input("Nom du joueur 1 : ")
+    if nom_joueur1 not in joueurs:
+        joueurs[nom_joueur1] = Joueur(nom_joueur1)
+
+    nom_joueur2 = nom_joueur1 if mode_ia else input("Nom du joueur 2 : ")
+    if nom_joueur2 not in joueurs:
+        joueurs[nom_joueur2] = Joueur(nom_joueur2)
+
     grille_joueur1 = initialiser_grille()
     grille_joueur2 = initialiser_grille()
     grille_tirs_joueur1 = initialiser_grille()
     grille_tirs_joueur2 = initialiser_grille()
 
-    # Essayer de charger une partie sauvegardée
-    etat_partie = charger_partie()
-    if etat_partie:
-        grille_joueur1 = etat_partie["grille_joueur1"]
-        grille_joueur2 = etat_partie["grille_joueur2"]
-        grille_tirs_joueur1 = etat_partie["grille_tirs_joueur1"]
-        grille_tirs_joueur2 = etat_partie["grille_tirs_joueur2"]
-
     print("Placement des bateaux pour le joueur 1 :")
     placer_tous_les_bateaux(grille_joueur1)
 
     if mode_ia:
-        if mode_ia == 'facile':
-            print("Placement des bateaux pour l'IA (facile) :")
-            placer_bateaux_automatique(grille_joueur2)
-        elif mode_ia == 'difficile':
-            print("Placement des bateaux pour l'IA (difficile) :")
-            placer_bateaux_automatique(grille_joueur2)
+        print("Placement des bateaux pour l'IA :")
+        placer_bateaux_automatique(grille_joueur2)
     else:
         print("Placement des bateaux pour le joueur 2 :")
         placer_tous_les_bateaux(grille_joueur2)
@@ -215,7 +239,8 @@ def jeu_bataille_navale(mode_ia=None):
         if mode_ia:
             if tour % 2 == 0:  # Tour du joueur
                 print("Tour du joueur 1.")
-                jouer_tour(grille_joueur2, grille_tirs_joueur1)
+                if not jouer_tour(grille_joueur2, grille_tirs_joueur1):
+                    continue
             else:  # Tour de l'IA
                 print("Tour de l'IA.")
                 ligne_index, colonne_index = random.randint(0, 9), random.randint(0, 9)
@@ -224,11 +249,14 @@ def jeu_bataille_navale(mode_ia=None):
                 verifier_tir(grille_joueur1, grille_tirs_joueur2, ligne_index, colonne_index)
         else:
             print("Tour du joueur 1.")
-            jouer_tour(grille_joueur2, grille_tirs_joueur1)
+            if not jouer_tour(grille_joueur2, grille_tirs_joueur1):
+                continue
 
         # Vérification des bateaux coulés et condition de victoire
         if all(cell != 'X' for row in grille_joueur2 for cell in row):
             print("Le joueur 1 a gagné !")
+            joueurs[nom_joueur1].mettre_a_jour_statistiques(True)
+            joueurs[nom_joueur2].mettre_a_jour_statistiques(False)
             break
 
         print("Grille des tirs du joueur 2 :")
@@ -243,21 +271,29 @@ def jeu_bataille_navale(mode_ia=None):
                 verifier_tir(grille_joueur1, grille_tirs_joueur1, ligne_index, colonne_index)
             else:  # Tour du joueur
                 print("Tour du joueur 2.")
-                jouer_tour(grille_joueur1, grille_tirs_joueur2)
+                if not jouer_tour(grille_joueur1, grille_tirs_joueur2):
+                    continue
         else:
             print("Tour du joueur 2.")
-            jouer_tour(grille_joueur1, grille_tirs_joueur2)
+            if not jouer_tour(grille_joueur1, grille_tirs_joueur2):
+                continue
 
         # Vérification des bateaux coulés et condition de victoire
         if all(cell != 'X' for row in grille_joueur1 for cell in row):
             print("Le joueur 2 a gagné !")
+            joueurs[nom_joueur2].mettre_a_jour_statistiques(True)
+            joueurs[nom_joueur1].mettre_a_jour_statistiques(False)
             break
 
         # Incrémentation du tour
         tour += 1
 
-    # Sauvegarder l'état final de la partie
-    sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2)
+    # Sauvegarder les statistiques des joueurs
+    sauvegarder_statistiques(joueurs)
+
+    # Afficher les statistiques et le classement
+    afficher_statistiques(joueurs)
+    afficher_classement(joueurs)
 
 # Exemple de démarrage du jeu
 if __name__ == "__main__":
