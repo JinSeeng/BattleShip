@@ -79,3 +79,21 @@ def placer_tous_les_bateaux(grille):
     for nom_bateau, taille_bateau in bateaux.items():
         placer_bateau(grille, nom_bateau, taille_bateau)
         afficher_grille(grille)
+
+def demander_tir():
+    """Demande au joueur une case à attaquer"""
+    colonne = input("Colonne à attaquer (A-J) : ").upper()
+    ligne = input("Ligne à attaquer (1-10) : ")
+    return convertir_coordonnees(colonne, ligne)
+
+
+def verifier_tir(grille, ligne_index, colonne_index):
+    """Vérifie si le tir est un touché ou un manqué"""
+    if grille[ligne_index][colonne_index] == 'X':
+        print("Touché !")
+        grille[ligne_index][colonne_index] = 'T'
+        return True
+    else:
+        print("Coulé !")
+        grille[ligne_index][colonne_index] = 'M'
+        return False
