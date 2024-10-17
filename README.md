@@ -1,6 +1,6 @@
 # BattleShip
 
-## Introduction
+## Description
 Bataille Navale est un jeu de stratégie où deux joueurs s'affrontent pour couler les bateaux de l'adversaire. Chaque joueur dispose d'une grille de 10x10 sur laquelle il place 5 bateaux de différentes tailles. Le but du jeu est de couler tous les bateaux de l'adversaire en tirant sur les cases de sa grille.
 
 ## Installation
