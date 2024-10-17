@@ -10,12 +10,12 @@ def initialiser_grille():
     """Crée une grille de 10x10 vide pour le jeu"""
     return [[' ' for _ in range(10)] for _ in range(10)]
 
-def afficher_grille(grille):
-    """Affiche la grille de jeu avec les coordonnées"""
+def afficher_grille(grille, masquer_bateaux=False):
+    """Affiche la grille de jeu avec les coordonnées. Si masquer_bateaux est True, les bateaux sont cachés"""
     print("   A B C D E F G H I J")
     print("  +" + "-+" * 10)
     for i, ligne in enumerate(grille):
-        print(f"{i+1:2}|{'|'.join(ligne)}|")
+        print(f"{i+1:2}|{'|'.join(' ' if cell == 'X' and masquer_bateaux else cell for cell in ligne)}|")
         print("  +" + "-+" * 10)
 
 def convertir_coordonnees(lettre, chiffre):
@@ -150,23 +150,6 @@ def jouer_tour(grille_adversaire, grille_tirs):
 
     return verifier_tir(grille_adversaire, grille_tirs, ligne_index, colonne_index)
 
-# Fonction pour IA intelligente (niveau difficile)
-def ia_intelligente(grille_adversaire, grille_tirs):
-    """IA attaquant intelligemment selon les tirs précédents."""
-    for i in range(10):
-        for j in range(10):
-            if grille_tirs[i][j] == 'T':
-                if i > 0 and grille_tirs[i-1][j] == ' ':  # Case au-dessus
-                    return i-1, j
-                if i < 9 and grille_tirs[i+1][j] == ' ':  # Case en dessous
-                    return i+1, j
-                if j > 0 and grille_tirs[i][j-1] == ' ':  # Case à gauche
-                    return i, j-1
-                if j < 9 and grille_tirs[i][j+1] == ' ':  # Case à droite
-                    return i, j+1
-    return ia_facile(grille_adversaire, grille_tirs)
-
-# Fonction pour IA facile (niveau facile)
 def ia_facile(grille_adversaire, grille_tirs):
     """IA attaquant aléatoirement"""
     ligne, colonne = random.randint(0, 9), random.randint(0, 9)
@@ -174,109 +157,97 @@ def ia_facile(grille_adversaire, grille_tirs):
         ligne, colonne = random.randint(0, 9), random.randint(0, 9)
     return ligne, colonne
 
-def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2, fichier="sauvegarde.json"):
-    """Sauvegarde l'état actuel de la partie dans un fichier"""
+def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2, fichier_sauvegarde='sauvegarde.json'):
+    """Sauvegarde l'état actuel de la partie dans un fichier JSON"""
     etat_partie = {
-        "grille_joueur1": grille_joueur1,
-        "grille_joueur2": grille_joueur2,
-        "grille_tirs_joueur1": grille_tirs_joueur1,
-        "grille_tirs_joueur2": grille_tirs_joueur2,
+        'grille_joueur1': grille_joueur1,
+        'grille_joueur2': grille_joueur2,
+        'grille_tirs_joueur1': grille_tirs_joueur1,
+        'grille_tirs_joueur2': grille_tirs_joueur2
     }
-    with open(fichier, "w") as f:
+    with open(fichier_sauvegarde, 'w') as f:
         json.dump(etat_partie, f)
-    print(f"Partie sauvegardée dans {fichier}")
+    print("Partie sauvegardée.")
 
-def charger_partie(fichier="sauvegarde.json"):
-    """Charge une partie depuis un fichier de sauvegarde"""
-    if os.path.exists(fichier):
-        with open(fichier, "r") as f:
-            etat_partie = json.load(f)
-            return (
-                etat_partie["grille_joueur1"],
-                etat_partie["grille_joueur2"],
-                etat_partie["grille_tirs_joueur1"],
-                etat_partie["grille_tirs_joueur2"],
-            )
-    else:
-        print(f"Le fichier {fichier} n'existe pas.")
-        return None, None, None, None
+def charger_partie(fichier_sauvegarde='sauvegarde.json'):
+    """Charge une partie sauvegardée à partir d'un fichier JSON"""
+    if not os.path.exists(fichier_sauvegarde):
+        print("Aucune partie sauvegardée n'a été trouvée.")
+        return None
 
-def choisir_adversaire():
-    """Permet de choisir de jouer contre l'IA ou un autre joueur avec gestion des erreurs"""
-    choix = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
-    while choix not in ['1', '2']:
-        print("Choix invalide. Entrez 1 pour un autre joueur ou 2 pour l'IA.")
-        choix = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
-    return choix
+    with open(fichier_sauvegarde, 'r') as f:
+        etat_partie = json.load(f)
 
-def choisir_difficulte_ia():
-    """Permet de choisir la difficulté de l'IA avec gestion des erreurs"""
-    choix = input("Choisissez la difficulté de l'IA - facile (1) ou difficile (2) : ")
-    while choix not in ['1', '2']:
-        print("Choix invalide. Entrez 1 pour facile ou 2 pour difficile.")
-        choix = input("Choisissez la difficulté de l'IA - facile (1) ou difficile (2) : ")
-    return choix
+    return (etat_partie['grille_joueur1'], etat_partie['grille_joueur2'],
+            etat_partie['grille_tirs_joueur1'], etat_partie['grille_tirs_joueur2'])
 
-def demarrer_jeu():
-    """Démarre le jeu de bataille navale avec tous les choix et configurations nécessaires"""
-    # Initialisation des grilles pour les deux joueurs
+def initialiser_partie():
+    """Initialise les grilles et demande au joueur de choisir entre une partie sauvegardée ou nouvelle"""
+    charger = input("Voulez-vous charger une partie sauvegardée ? (o/n) : ").lower()
+    if charger == 'o':
+        partie = charger_partie()
+        if partie:
+            return partie
+        else:
+            print("Aucune partie à charger, démarrage d'une nouvelle partie.")
     grille_joueur1 = initialiser_grille()
     grille_joueur2 = initialiser_grille()
     grille_tirs_joueur1 = initialiser_grille()
     grille_tirs_joueur2 = initialiser_grille()
 
-    print("Bienvenue dans le jeu de bataille navale !")
+    return grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2
 
-    # Choix de l'adversaire
-    adversaire = choisir_adversaire()
+def choisir_adversaire():
+    """Permet au joueur de choisir s'il veut jouer contre un autre joueur ou une IA"""
+    choix = input("Voulez-vous jouer contre un autre joueur ou une IA ? (1: Joueur, 2: IA) : ")
+    while choix not in ['1', '2']:
+        print("Choix invalide.")
+        choix = input("Voulez-vous jouer contre un autre joueur ou une IA ? (1: Joueur, 2: IA) : ")
 
-    if adversaire == '1':
-        print("Vous jouez contre un autre joueur.")
-        print("Joueur 1, placez vos bateaux :")
-        placer_tous_les_bateaux(grille_joueur1)
-        print("Joueur 2, placez vos bateaux :")
-        placer_tous_les_bateaux(grille_joueur2)
+    if choix == '2':
+        difficulte = input("Choisissez la difficulté de l'IA (1: Facile, 2: Difficile) : ")
+        while difficulte not in ['1', '2']:
+            print("Difficulté invalide.")
+            difficulte = input("Choisissez la difficulté de l'IA (1: Facile, 2: Difficile) : ")
+        return 'IA', difficulte
+    return 'Joueur', None
+
+def afficher_statistiques():
+    """Affiche les statistiques de victoires et défaites des joueurs"""
+    if statistiques_joueurs:
+        print("Classement des joueurs :")
+        for joueur, stats in statistiques_joueurs.items():
+            print(f"{joueur}: {stats['victoires']} victoires, {stats['defaites']} défaites")
     else:
-        print("Vous jouez contre l'IA.")
-        difficulte_ia = choisir_difficulte_ia()
-        print("Joueur, placez vos bateaux :")
-        placer_tous_les_bateaux(grille_joueur1)
-        print("Placement automatique des bateaux de l'IA...")
-        placement_automatique_ia(grille_joueur2)
+        print("Aucune statistique disponible.")
 
-    # Boucle du jeu
-    jeu_termine = False
-    tour_joueur1 = True  # Le joueur 1 commence toujours
+def mettre_a_jour_statistiques(nom_joueur, victoire):
+    """Met à jour les statistiques de victoires et défaites pour un joueur"""
+    if nom_joueur not in statistiques_joueurs:
+        statistiques_joueurs[nom_joueur] = {'victoires': 0, 'defaites': 0}
+    if victoire:
+        statistiques_joueurs[nom_joueur]['victoires'] += 1
+    else:
+        statistiques_joueurs[nom_joueur]['defaites'] += 1
 
-    while not jeu_termine:
-        if tour_joueur1:
-            print("Tour du joueur 1")
-            afficher_grille(grille_tirs_joueur1)
-            touche = jouer_tour(grille_joueur2, grille_tirs_joueur1)
-        else:
-            if adversaire == '1':
-                print("Tour du joueur 2")
-                afficher_grille(grille_tirs_joueur2)
-                touche = jouer_tour(grille_joueur1, grille_tirs_joueur2)
-            else:
-                print("Tour de l'IA")
-                if difficulte_ia == '1':
-                    ligne, colonne = ia_facile(grille_joueur1, grille_tirs_joueur2)
-                else:
-                    ligne, colonne = ia_intelligente(grille_joueur1, grille_tirs_joueur2)
-                touche = verifier_tir(grille_joueur1, grille_tirs_joueur2, ligne, colonne)
-                afficher_grille(grille_tirs_joueur2)
+def demander_nom_joueur(numero_joueur):
+    """Demande le nom du joueur"""
+    return input(f"Nom du joueur {numero_joueur}: ")
 
-        # Vérification de la fin du jeu
-        if all(cell != 'X' for row in grille_joueur2 for cell in row):
-            print("Le joueur 1 a gagné !")
-            jeu_termine = True
-        elif all(cell != 'X' for row in grille_joueur1 for cell in row):
-            print("Le joueur 2 a gagné !" if adversaire == '1' else "L'IA a gagné !")
-            jeu_termine = True
+# Démarrage de la partie
+grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2 = initialiser_partie()
+adversaire, difficulte_ia = choisir_adversaire()
+nom_joueur1 = demander_nom_joueur(1)
+nom_joueur2 = None if adversaire == 'IA' else demander_nom_joueur(2)
 
-        # Changement de tour
-        tour_joueur1 = not tour_joueur1
+print(f"{nom_joueur1}, placez vos bateaux.")
+placer_tous_les_bateaux(grille_joueur1)
+if adversaire == 'IA':
+    print("L'IA place ses bateaux.")
+    placement_automatique_ia(grille_joueur2)
+else:
+    print(f"{nom_joueur2}, placez vos bateaux.")
+    placer_tous_les_bateaux(grille_joueur2)
 
-if __name__ == "__main__":
-    demarrer_jeu()
+# Affichage des statistiques à la fin de la partie
+afficher_statistiques()
