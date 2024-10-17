@@ -2,6 +2,9 @@ import random
 import json
 import os
 
+# Statistiques des joueurs (victoires/défaites)
+statistiques_joueurs = {}
+
 # Initialisation de la grille pour les deux joueurs
 def initialiser_grille():
     """Crée une grille de 10x10 vide pour le jeu"""
@@ -21,11 +24,21 @@ def convertir_coordonnees(lettre, chiffre):
     return int(chiffre) - 1, lettres_to_index[lettre.upper()]
 
 def demander_position_bateau(nom_bateau, taille_bateau):
-    """Demande au joueur de placer un bateau sur la grille"""
-    print(f"Où voulez-vous placer votre {nom_bateau} ({taille_bateau} cases) ?")
+    """Demande au joueur de placer un bateau sur la grille avec gestion des erreurs"""
     orientation = input("Orientation (H pour horizontal, V pour vertical) : ").upper()
+    while orientation not in ['H', 'V']:
+        print("Orientation invalide. Entrez H pour horizontal ou V pour vertical.")
+        orientation = input("Orientation (H pour horizontal, V pour vertical) : ").upper()
+
     colonne = input("Colonne (A-J) : ").upper()
+    while colonne not in 'ABCDEFGHIJ':
+        print("Colonne invalide. Entrez une lettre entre A et J.")
+        colonne = input("Colonne (A-J) : ").upper()
+
     ligne = input("Ligne (1-10) : ")
+    while not ligne.isdigit() or not 1 <= int(ligne) <= 10:
+        print("Ligne invalide. Entrez un nombre entre 1 et 10.")
+        ligne = input("Ligne (1-10) : ")
 
     return orientation, colonne, ligne
 
@@ -78,10 +91,37 @@ def placer_tous_les_bateaux(grille):
         placer_bateau(grille, nom_bateau, taille_bateau)
         afficher_grille(grille)
 
+def placement_automatique_ia(grille):
+    """Place automatiquement les bateaux pour l'IA"""
+    bateaux = {
+        'Porte-avions': 5,
+        'Croiseur': 4,
+        'Contre-torpilleur': 3,
+        'Sous-marin': 3,
+        'Torpilleur': 2
+    }
+    for nom_bateau, taille_bateau in bateaux.items():
+        orientation = random.choice(['H', 'V'])
+        ligne = random.randint(1, 10)
+        colonne = random.choice('ABCDEFGHIJ')
+        while not verifier_position_valide(grille, orientation, ligne, colonne, taille_bateau):
+            orientation = random.choice(['H', 'V'])
+            ligne = random.randint(1, 10)
+            colonne = random.choice('ABCDEFGHIJ')
+        placer_bateau(grille, nom_bateau, taille_bateau)
+
 def demander_tir():
-    """Demande au joueur une case à attaquer"""
+    """Demande au joueur une case à attaquer avec gestion des erreurs"""
     colonne = input("Colonne à attaquer (A-J) : ").upper()
+    while colonne not in 'ABCDEFGHIJ':
+        print("Colonne invalide. Entrez une lettre entre A et J.")
+        colonne = input("Colonne à attaquer (A-J) : ").upper()
+
     ligne = input("Ligne à attaquer (1-10) : ")
+    while not ligne.isdigit() or not 1 <= int(ligne) <= 10:
+        print("Ligne invalide. Entrez un nombre entre 1 et 10.")
+        ligne = input("Ligne à attaquer (1-10) : ")
+
     return convertir_coordonnees(colonne, ligne)
 
 def verifier_tir(grille_adversaire, grille_tirs, ligne_index, colonne_index):
@@ -103,174 +143,173 @@ def verifier_tir(grille_adversaire, grille_tirs, ligne_index, colonne_index):
 def jouer_tour(grille_adversaire, grille_tirs):
     """Permet à un joueur de jouer un tour et d'attaquer"""
     ligne_index, colonne_index = demander_tir()
-    while grille_tirs[ligne_index][colonne_index] in ['T', 'C']:
+    while grille_tirs[ligne_index][colonne_index] in ['T', 'M']:
         print("Vous avez déjà tiré sur cette case.")
         ligne_index, colonne_index = demander_tir()
 
     return verifier_tir(grille_adversaire, grille_tirs, ligne_index, colonne_index)
 
-def placer_bateau_aleatoire(grille, taille):
-    """Place un bateau de taille donnée aléatoirement sur la grille."""
-    orientation = random.choice(["H", "V"])  # H = horizontal, V = vertical
-    if orientation == "H":
-        ligne = random.randint(0, 9)
-        col_debut = random.randint(0, 10 - taille)
-        # Vérifier s'il y a de la place pour le bateau
-        for i in range(taille):
-            if grille[ligne][col_debut + i] != ' ':
-                return placer_bateau_aleatoire(grille, taille)  # Recommence si l'emplacement est occupé
-        # Placer le bateau
-        for i in range(taille):
-            grille[ligne][col_debut + i] = 'X'
-    else:
-        col = random.randint(0, 9)
-        ligne_debut = random.randint(0, 10 - taille)
-        # Vérifier s'il y a de la place pour le bateau
-        for i in range(taille):
-            if grille[ligne_debut + i][col] != ' ':
-                return placer_bateau_aleatoire(grille, taille)  # Recommence si l'emplacement est occupé
-        # Placer le bateau
-        for i in range(taille):
-            grille[ligne_debut + i][col] = 'X'
+# Fonction pour IA intelligente (niveau difficile)
+def ia_intelligente(grille_adversaire, grille_tirs):
+    """IA attaquant intelligemment selon les tirs précédents."""
+    for i in range(10):
+        for j in range(10):
+            if grille_tirs[i][j] == 'T':
+                if i > 0 and grille_tirs[i-1][j] == ' ':  # Case au-dessus
+                    return i-1, j
+                if i < 9 and grille_tirs[i+1][j] == ' ':  # Case en dessous
+                    return i+1, j
+                if j > 0 and grille_tirs[i][j-1] == ' ':  # Case à gauche
+                    return i, j-1
+                if j < 9 and grille_tirs[i][j+1] == ' ':  # Case à droite
+                    return i, j+1
+    return ia_facile(grille_adversaire, grille_tirs)
 
-def placer_bateaux_automatique(grille):
-    """Place tous les bateaux de l'IA automatiquement sur la grille."""
-    tailles_bateaux = [5, 4, 3, 3, 2]  # Les tailles des bateaux à placer
-    for taille in tailles_bateaux:
-        placer_bateau_aleatoire(grille, taille)
+# Fonction pour IA facile (niveau facile)
+def ia_facile(grille_adversaire, grille_tirs):
+    """IA attaquant aléatoirement"""
+    ligne, colonne = random.randint(0, 9), random.randint(0, 9)
+    while grille_tirs[ligne][colonne] in ['T', 'C']:
+        ligne, colonne = random.randint(0, 9), random.randint(0, 9)
+    return ligne, colonne
 
-def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2):
-    """Sauvegarde l'état actuel du jeu dans un fichier JSON"""
+def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2, fichier_sauvegarde='sauvegarde.json'):
+    """Sauvegarde l'état actuel de la partie dans un fichier JSON"""
     etat_partie = {
-        "grille_joueur1": grille_joueur1,
-        "grille_joueur2": grille_joueur2,
-        "grille_tirs_joueur1": grille_tirs_joueur1,
-        "grille_tirs_joueur2": grille_tirs_joueur2
+        'grille_joueur1': grille_joueur1,
+        'grille_joueur2': grille_joueur2,
+        'grille_tirs_joueur1': grille_tirs_joueur1,
+        'grille_tirs_joueur2': grille_tirs_joueur2
     }
-    with open("sauvegarde.json", "w") as fichier:
-        json.dump(etat_partie, fichier)
+    with open(fichier_sauvegarde, 'w') as f:
+        json.dump(etat_partie, f)
+    print("Partie sauvegardée.")
 
-def charger_partie():
-    """Charge l'état du jeu depuis un fichier JSON"""
-    if os.path.exists("sauvegarde.json"):
-        with open("sauvegarde.json", "r") as fichier:
-            return json.load(fichier)
+def charger_partie(fichier_sauvegarde='sauvegarde.json'):
+    """Charge une partie sauvegardée à partir d'un fichier JSON"""
+    if not os.path.exists(fichier_sauvegarde):
+        print("Aucune partie sauvegardée n'a été trouvée.")
+        return None, None, None, None
+
+    with open(fichier_sauvegarde, 'r') as f:
+        etat_partie = json.load(f)
+
+    return (etat_partie['grille_joueur1'],
+            etat_partie['grille_joueur2'],
+            etat_partie['grille_tirs_joueur1'],
+            etat_partie['grille_tirs_joueur2'])
+
+def mise_a_jour_statistiques(nom_gagnant, nom_perdant):
+    """Mise à jour des statistiques de victoires et défaites pour chaque joueur"""
+    if nom_gagnant not in statistiques_joueurs:
+        statistiques_joueurs[nom_gagnant] = {'victoires': 0, 'defaites': 0}
+    if nom_perdant not in statistiques_joueurs:
+        statistiques_joueurs[nom_perdant] = {'victoires': 0, 'defaites': 0}
+
+    statistiques_joueurs[nom_gagnant]['victoires'] += 1
+    statistiques_joueurs[nom_perdant]['defaites'] += 1
+
+    # Sauvegarder les statistiques dans un fichier JSON
+    with open('statistiques_joueurs.json', 'w') as f:
+        json.dump(statistiques_joueurs, f)
+
+def afficher_statistiques():
+    """Affiche le classement des joueurs en fonction des victoires/défaites"""
+    print("Classement des joueurs :")
+    classement = sorted(statistiques_joueurs.items(), key=lambda x: x[1]['victoires'], reverse=True)
+    for joueur, stats in classement:
+        print(f"{joueur} - {stats['victoires']} victoire(s), {stats['defaites']} défaite(s)")
+
+def jeu_bataille_navale():
+    """Lance une partie de bataille navale"""
+    global statistiques_joueurs
+
+    # Charger les statistiques des joueurs à partir du fichier JSON
+    if os.path.exists('statistiques_joueurs.json'):
+        with open('statistiques_joueurs.json', 'r') as f:
+            statistiques_joueurs = json.load(f)
+
+    print("Bienvenue dans la Bataille Navale !")
+    nom_joueur1 = input("Nom du joueur 1 : ")
+    choix_mode = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
+    if choix_mode == '1':
+        nom_joueur2 = input("Nom du joueur 2 : ")
+        mode_ia = False
     else:
-        print("Aucune sauvegarde trouvée.")
-        return None
+        nom_joueur2 = "IA"
+        difficulte_ia = input("Choisissez le niveau de difficulté de l'IA (facile/difficile) : ")
+        mode_ia = True
 
-def jouer_contre_ia(mode_ia):
-    """Fonction de jeu contre l'IA avec une logique d'attaque intelligente pour le mode difficile."""
-    grille_joueur1 = initialiser_grille()
-    grille_ia = initialiser_grille()
+    # Chargement ou nouvelle partie
+    if input("Voulez-vous charger une partie sauvegardée ? (oui/non) ").lower() == 'oui':
+        grilles = charger_partie()
+        if grilles[0] is None:
+            return
+        grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2 = grilles
+    else:
+        # Initialiser les grilles
+        grille_joueur1 = initialiser_grille()
+        grille_joueur2 = initialiser_grille()
+        grille_tirs_joueur1 = initialiser_grille()
+        grille_tirs_joueur2 = initialiser_grille()
 
-    grille_tirs_joueur1 = initialiser_grille()
-    grille_tirs_ia = initialiser_grille()
-
-    # Placer les bateaux pour le joueur
-    print("Placement des bateaux pour le joueur 1 :")
-    placer_tous_les_bateaux(grille_joueur1)
-
-    # Placer les bateaux pour l'IA
-    print("Placement des bateaux pour l'IA :")
-    placer_bateaux_automatique(grille_ia)
-
-    # Boucle de jeu principale
-    tour = 0
-    while True:
-        print(f"\n--- Tour {tour + 1} ---")
-        print("Grille des tirs du joueur 1 :")
-        afficher_grille(grille_tirs_joueur1)
-
-        if jouer_tour(grille_ia, grille_tirs_joueur1):
-            # Vérifier si l'IA est coulée
-            if all(cell != 'X' for row in grille_ia for cell in row):
-                print("Félicitations ! Vous avez coulé tous les bateaux de l'IA !")
-                break
+        # Placer les bateaux
+        print(f"{nom_joueur1}, placez vos bateaux.")
+        placer_tous_les_bateaux(grille_joueur1)
+        print(f"{nom_joueur2}, placez vos bateaux.")
+        if mode_ia:
+            # Placement automatique des bateaux pour l'IA
+            for nom_bateau, taille_bateau in {'Porte-avions': 5, 'Croiseur': 4, 'Contre-torpilleur': 3, 'Sous-marin': 3, 'Torpilleur': 2}.items():
+                orientation = random.choice(['H', 'V'])
+                ligne = random.randint(1, 10)
+                colonne = random.choice('ABCDEFGHIJ')
+                while not verifier_position_valide(grille_joueur2, orientation, ligne, colonne, taille_bateau):
+                    orientation = random.choice(['H', 'V'])
+                    ligne = random.randint(1, 10)
+                    colonne = random.choice('ABCDEFGHIJ')
+                placer_bateau(grille_joueur2, nom_bateau, taille_bateau)
         else:
-            print("C'est au tour de l'IA de jouer.")
-            # IA joue
-            if mode_ia == "facile":
-                ligne_ia = random.randint(0, 9)
-                colonne_ia = random.randint(0, 9)
-            else:  # mode difficile
-                # Ici, nous pourrions implémenter une logique d'attaque intelligente
-                ligne_ia, colonne_ia = intelligent_attack(grille_joueur1, grille_tirs_ia)
+            placer_tous_les_bateaux(grille_joueur2)
 
-            verifier_tir(grille_joueur1, grille_tirs_ia, ligne_ia, colonne_ia)
-            print(f"L'IA a tiré sur {chr(colonne_ia + 65)}{ligne_ia + 1}.")
+    # Boucle de jeu
+    partie_terminee = False
+    tour_joueur1 = True
 
-            # Vérifier si le joueur est coulé
-            if all(cell != 'X' for row in grille_joueur1 for cell in row):
-                print("Dommage ! L'IA a coulé tous vos bateaux.")
-                break
-
-        tour += 1
-
-def intelligent_attack(grille_joueur, grille_tirs):
-    """Logique d'attaque intelligente pour l'IA (difficile)"""
-    # Cette fonction doit être développée pour rendre l'IA plus intelligente en fonction des attaques précédentes.
-    # Pour l'instant, faisons une attaque aléatoire.
-    while True:
-        ligne = random.randint(0, 9)
-        colonne = random.randint(0, 9)
-        if grille_tirs[ligne][colonne] not in ['T', 'C']:  # Vérifier que cette case n'a pas été déjà attaquée
-            return ligne, colonne
-
-def jouer():
-    """Fonction principale pour gérer le jeu et l'interaction avec le joueur"""
-    grille_joueur1 = initialiser_grille()
-    grille_joueur2 = initialiser_grille()
-
-    grille_tirs_joueur1 = initialiser_grille()
-    grille_tirs_joueur2 = initialiser_grille()
-
-    # Placer les bateaux pour le joueur 1
-    print("Placement des bateaux pour le joueur 1 :")
-    placer_tous_les_bateaux(grille_joueur1)
-
-    # Placer les bateaux pour le joueur 2
-    print("Placement des bateaux pour le joueur 2 :")
-    placer_tous_les_bateaux(grille_joueur2)
-
-    # Boucle de jeu principale
-    tour = 0
-    while True:
-        print(f"\n--- Tour {tour + 1} ---")
-        print("Grille des tirs du joueur 1 :")
-        afficher_grille(grille_tirs_joueur1)
-
-        if jouer_tour(grille_joueur2, grille_tirs_joueur1):
-            # Vérifier si le joueur 2 est coulé
-            if all(cell != 'X' for row in grille_joueur2 for cell in row):
-                print("Félicitations ! Le joueur 1 a coulé tous les bateaux du joueur 2 !")
-                break
-
-        print("Grille des tirs du joueur 2 :")
-        afficher_grille(grille_tirs_joueur2)
-
-        if jouer_tour(grille_joueur1, grille_tirs_joueur2):
-            # Vérifier si le joueur 1 est coulé
-            if all(cell != 'X' for row in grille_joueur1 for cell in row):
-                print("Félicitations ! Le joueur 2 a coulé tous les bateaux du joueur 1 !")
-                break
-
-        tour += 1
-
-# Menu principal
-if __name__ == "__main__":
-    print("Bienvenue dans le jeu de la Bataille Navale !")
-
-    while True:  # Boucle pour continuer à demander un choix
-        choix = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
-
-        if choix == "1":
-            jouer()
-            break  # Sortir de la boucle si un choix valide est effectué
-        elif choix == "2":
-            niveau_ia = input("Choisissez le niveau de l'IA (facile/difficile) : ").lower()
-            jouer_contre_ia(niveau_ia)
-            break  # Sortir de la boucle si un choix valide est effectué
+    while not partie_terminee:
+        if tour_joueur1:
+            print(f"{nom_joueur1}, c'est votre tour.")
+            afficher_grille(grille_tirs_joueur1)
+            partie_terminee = jouer_tour(grille_joueur2, grille_tirs_joueur1)
         else:
-            print("Choix non valide. Veuillez choisir 1 ou 2.")
+            print(f"{nom_joueur2}, c'est votre tour.")
+            if mode_ia:
+                if difficulte_ia == 'facile':
+                    ligne, colonne = ia_facile(grille_joueur1, grille_tirs_joueur2)
+                else:
+                    ligne, colonne = ia_intelligente(grille_joueur1, grille_tirs_joueur2)
+                verifier_tir(grille_joueur1, grille_tirs_joueur2, ligne, colonne)
+            else:
+                afficher_grille(grille_tirs_joueur2)
+                partie_terminee = jouer_tour(grille_joueur1, grille_tirs_joueur2)
 
+        tour_joueur1 = not tour_joueur1
+
+        # Vérification de la victoire
+        if all(cell != 'X' for row in grille_joueur1 for cell in row):
+            print(f"{nom_joueur2} a gagné !")
+            mise_a_jour_statistiques(nom_joueur2, nom_joueur1)
+            partie_terminee = True
+        elif all(cell != 'X' for row in grille_joueur2 for cell in row):
+            print(f"{nom_joueur1} a gagné !")
+            mise_a_jour_statistiques(nom_joueur1, nom_joueur2)
+            partie_terminee = True
+
+    # Sauvegarde de la partie
+    if input("Voulez-vous sauvegarder la partie avant de quitter ? (oui/non) ").lower() == 'oui':
+        sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2)
+
+    # Afficher les statistiques
+    afficher_statistiques()
+
+# Lancer le jeu
+jeu_bataille_navale()
