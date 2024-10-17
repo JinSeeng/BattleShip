@@ -174,143 +174,109 @@ def ia_facile(grille_adversaire, grille_tirs):
         ligne, colonne = random.randint(0, 9), random.randint(0, 9)
     return ligne, colonne
 
-def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2, fichier_sauvegarde='sauvegarde.json'):
-    """Sauvegarde l'état actuel de la partie dans un fichier JSON"""
+def sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2, fichier="sauvegarde.json"):
+    """Sauvegarde l'état actuel de la partie dans un fichier"""
     etat_partie = {
-        'grille_joueur1': grille_joueur1,
-        'grille_joueur2': grille_joueur2,
-        'grille_tirs_joueur1': grille_tirs_joueur1,
-        'grille_tirs_joueur2': grille_tirs_joueur2
+        "grille_joueur1": grille_joueur1,
+        "grille_joueur2": grille_joueur2,
+        "grille_tirs_joueur1": grille_tirs_joueur1,
+        "grille_tirs_joueur2": grille_tirs_joueur2,
     }
-    with open(fichier_sauvegarde, 'w') as f:
+    with open(fichier, "w") as f:
         json.dump(etat_partie, f)
-    print("Partie sauvegardée.")
+    print(f"Partie sauvegardée dans {fichier}")
 
-def charger_partie(fichier_sauvegarde='sauvegarde.json'):
-    """Charge une partie sauvegardée à partir d'un fichier JSON"""
-    if not os.path.exists(fichier_sauvegarde):
-        print("Aucune partie sauvegardée n'a été trouvée.")
+def charger_partie(fichier="sauvegarde.json"):
+    """Charge une partie depuis un fichier de sauvegarde"""
+    if os.path.exists(fichier):
+        with open(fichier, "r") as f:
+            etat_partie = json.load(f)
+            return (
+                etat_partie["grille_joueur1"],
+                etat_partie["grille_joueur2"],
+                etat_partie["grille_tirs_joueur1"],
+                etat_partie["grille_tirs_joueur2"],
+            )
+    else:
+        print(f"Le fichier {fichier} n'existe pas.")
         return None, None, None, None
 
-    with open(fichier_sauvegarde, 'r') as f:
-        etat_partie = json.load(f)
+def choisir_adversaire():
+    """Permet de choisir de jouer contre l'IA ou un autre joueur avec gestion des erreurs"""
+    choix = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
+    while choix not in ['1', '2']:
+        print("Choix invalide. Entrez 1 pour un autre joueur ou 2 pour l'IA.")
+        choix = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
+    return choix
 
-    return (etat_partie['grille_joueur1'],
-            etat_partie['grille_joueur2'],
-            etat_partie['grille_tirs_joueur1'],
-            etat_partie['grille_tirs_joueur2'])
+def choisir_difficulte_ia():
+    """Permet de choisir la difficulté de l'IA avec gestion des erreurs"""
+    choix = input("Choisissez la difficulté de l'IA - facile (1) ou difficile (2) : ")
+    while choix not in ['1', '2']:
+        print("Choix invalide. Entrez 1 pour facile ou 2 pour difficile.")
+        choix = input("Choisissez la difficulté de l'IA - facile (1) ou difficile (2) : ")
+    return choix
 
-def mise_a_jour_statistiques(nom_gagnant, nom_perdant):
-    """Mise à jour des statistiques de victoires et défaites pour chaque joueur"""
-    if nom_gagnant not in statistiques_joueurs:
-        statistiques_joueurs[nom_gagnant] = {'victoires': 0, 'defaites': 0}
-    if nom_perdant not in statistiques_joueurs:
-        statistiques_joueurs[nom_perdant] = {'victoires': 0, 'defaites': 0}
+def demarrer_jeu():
+    """Démarre le jeu de bataille navale avec tous les choix et configurations nécessaires"""
+    # Initialisation des grilles pour les deux joueurs
+    grille_joueur1 = initialiser_grille()
+    grille_joueur2 = initialiser_grille()
+    grille_tirs_joueur1 = initialiser_grille()
+    grille_tirs_joueur2 = initialiser_grille()
 
-    statistiques_joueurs[nom_gagnant]['victoires'] += 1
-    statistiques_joueurs[nom_perdant]['defaites'] += 1
+    print("Bienvenue dans le jeu de bataille navale !")
 
-    # Sauvegarder les statistiques dans un fichier JSON
-    with open('statistiques_joueurs.json', 'w') as f:
-        json.dump(statistiques_joueurs, f)
+    # Choix de l'adversaire
+    adversaire = choisir_adversaire()
 
-def afficher_statistiques():
-    """Affiche le classement des joueurs en fonction des victoires/défaites"""
-    print("Classement des joueurs :")
-    classement = sorted(statistiques_joueurs.items(), key=lambda x: x[1]['victoires'], reverse=True)
-    for joueur, stats in classement:
-        print(f"{joueur} - {stats['victoires']} victoire(s), {stats['defaites']} défaite(s)")
-
-def jeu_bataille_navale():
-    """Lance une partie de bataille navale"""
-    global statistiques_joueurs
-
-    # Charger les statistiques des joueurs à partir du fichier JSON
-    if os.path.exists('statistiques_joueurs.json'):
-        with open('statistiques_joueurs.json', 'r') as f:
-            statistiques_joueurs = json.load(f)
-
-    print("Bienvenue dans la Bataille Navale !")
-    nom_joueur1 = input("Nom du joueur 1 : ")
-    choix_mode = input("Voulez-vous jouer contre un autre joueur (1) ou contre l'IA (2) ? ")
-    if choix_mode == '1':
-        nom_joueur2 = input("Nom du joueur 2 : ")
-        mode_ia = False
-    else:
-        nom_joueur2 = "IA"
-        difficulte_ia = input("Choisissez le niveau de difficulté de l'IA (facile/difficile) : ")
-        mode_ia = True
-
-    # Chargement ou nouvelle partie
-    if input("Voulez-vous charger une partie sauvegardée ? (oui/non) ").lower() == 'oui':
-        grilles = charger_partie()
-        if grilles[0] is None:
-            return
-        grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2 = grilles
-    else:
-        # Initialiser les grilles
-        grille_joueur1 = initialiser_grille()
-        grille_joueur2 = initialiser_grille()
-        grille_tirs_joueur1 = initialiser_grille()
-        grille_tirs_joueur2 = initialiser_grille()
-
-        # Placer les bateaux
-        print(f"{nom_joueur1}, placez vos bateaux.")
+    if adversaire == '1':
+        print("Vous jouez contre un autre joueur.")
+        print("Joueur 1, placez vos bateaux :")
         placer_tous_les_bateaux(grille_joueur1)
-        print(f"{nom_joueur2}, placez vos bateaux.")
-        if mode_ia:
-            # Placement automatique des bateaux pour l'IA
-            for nom_bateau, taille_bateau in {'Porte-avions': 5, 'Croiseur': 4, 'Contre-torpilleur': 3, 'Sous-marin': 3, 'Torpilleur': 2}.items():
-                orientation = random.choice(['H', 'V'])
-                ligne = random.randint(1, 10)
-                colonne = random.choice('ABCDEFGHIJ')
-                while not verifier_position_valide(grille_joueur2, orientation, ligne, colonne, taille_bateau):
-                    orientation = random.choice(['H', 'V'])
-                    ligne = random.randint(1, 10)
-                    colonne = random.choice('ABCDEFGHIJ')
-                placer_bateau(grille_joueur2, nom_bateau, taille_bateau)
-        else:
-            placer_tous_les_bateaux(grille_joueur2)
+        print("Joueur 2, placez vos bateaux :")
+        placer_tous_les_bateaux(grille_joueur2)
+    else:
+        print("Vous jouez contre l'IA.")
+        difficulte_ia = choisir_difficulte_ia()
+        print("Joueur, placez vos bateaux :")
+        placer_tous_les_bateaux(grille_joueur1)
+        print("Placement automatique des bateaux de l'IA...")
+        placement_automatique_ia(grille_joueur2)
 
-    # Boucle de jeu
-    partie_terminee = False
-    tour_joueur1 = True
+    # Boucle du jeu
+    jeu_termine = False
+    tour_joueur1 = True  # Le joueur 1 commence toujours
 
-    while not partie_terminee:
+    while not jeu_termine:
         if tour_joueur1:
-            print(f"{nom_joueur1}, c'est votre tour.")
+            print("Tour du joueur 1")
             afficher_grille(grille_tirs_joueur1)
-            partie_terminee = jouer_tour(grille_joueur2, grille_tirs_joueur1)
+            touche = jouer_tour(grille_joueur2, grille_tirs_joueur1)
         else:
-            print(f"{nom_joueur2}, c'est votre tour.")
-            if mode_ia:
-                if difficulte_ia == 'facile':
+            if adversaire == '1':
+                print("Tour du joueur 2")
+                afficher_grille(grille_tirs_joueur2)
+                touche = jouer_tour(grille_joueur1, grille_tirs_joueur2)
+            else:
+                print("Tour de l'IA")
+                if difficulte_ia == '1':
                     ligne, colonne = ia_facile(grille_joueur1, grille_tirs_joueur2)
                 else:
                     ligne, colonne = ia_intelligente(grille_joueur1, grille_tirs_joueur2)
-                verifier_tir(grille_joueur1, grille_tirs_joueur2, ligne, colonne)
-            else:
+                touche = verifier_tir(grille_joueur1, grille_tirs_joueur2, ligne, colonne)
                 afficher_grille(grille_tirs_joueur2)
-                partie_terminee = jouer_tour(grille_joueur1, grille_tirs_joueur2)
 
+        # Vérification de la fin du jeu
+        if all(cell != 'X' for row in grille_joueur2 for cell in row):
+            print("Le joueur 1 a gagné !")
+            jeu_termine = True
+        elif all(cell != 'X' for row in grille_joueur1 for cell in row):
+            print("Le joueur 2 a gagné !" if adversaire == '1' else "L'IA a gagné !")
+            jeu_termine = True
+
+        # Changement de tour
         tour_joueur1 = not tour_joueur1
 
-        # Vérification de la victoire
-        if all(cell != 'X' for row in grille_joueur1 for cell in row):
-            print(f"{nom_joueur2} a gagné !")
-            mise_a_jour_statistiques(nom_joueur2, nom_joueur1)
-            partie_terminee = True
-        elif all(cell != 'X' for row in grille_joueur2 for cell in row):
-            print(f"{nom_joueur1} a gagné !")
-            mise_a_jour_statistiques(nom_joueur1, nom_joueur2)
-            partie_terminee = True
-
-    # Sauvegarde de la partie
-    if input("Voulez-vous sauvegarder la partie avant de quitter ? (oui/non) ").lower() == 'oui':
-        sauvegarder_partie(grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2)
-
-    # Afficher les statistiques
-    afficher_statistiques()
-
-# Lancer le jeu
-jeu_bataille_navale()
+if __name__ == "__main__":
+    demarrer_jeu()
