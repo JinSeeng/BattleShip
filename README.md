@@ -16,14 +16,6 @@ Pour installer le jeu, suivez ces étapes :
 2. **Assurez-vous d'avoir Python installé** :
    Ce projet nécessite Python 3.7 ou supérieur. Vous pouvez télécharger Python [ici](https://www.python.org/downloads/).
 
-3. **Installer Tkinter** :
-   Tkinter est généralement inclus avec Python. Si ce n'est pas le cas, installez-le avec votre gestionnaire de paquets.
-    - Pour Ubuntu :
-      ```bash
-      sudo apt-get install python3-tk
-      ```
-    - Pour Windows, assurez-vous de cocher l'option lors de l'installation de Python.
-
 ## Lancement du Jeu
 
 Pour lancer le jeu, exécutez le script Python :
