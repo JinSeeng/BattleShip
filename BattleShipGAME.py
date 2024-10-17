@@ -25,6 +25,7 @@ def convertir_coordonnees(lettre, chiffre):
 
 def demander_position_bateau(nom_bateau, taille_bateau):
     """Demande au joueur de placer un bateau sur la grille avec gestion des erreurs"""
+    print(f"Où voulez-vous placer votre {nom_bateau} ({taille_bateau} cases) ?")
     orientation = input("Orientation (H pour horizontal, V pour vertical) : ").upper()
     while orientation not in ['H', 'V']:
         print("Orientation invalide. Entrez H pour horizontal ou V pour vertical.")
