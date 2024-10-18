@@ -235,6 +235,8 @@ def demander_nom_joueur(numero_joueur):
     return input(f"Nom du joueur {numero_joueur}: ")
 
 # Démarrage de la partie
+"""Démarre une partie de bataille navale"""
+print("Bienvenue dans la Bataille Navale !")
 grille_joueur1, grille_joueur2, grille_tirs_joueur1, grille_tirs_joueur2 = initialiser_partie()
 adversaire, difficulte_ia = choisir_adversaire()
 nom_joueur1 = demander_nom_joueur(1)
