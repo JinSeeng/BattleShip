@@ -1,7 +1,7 @@
 # BattleShip
 
 ## Description
-La Bataille Navale est un jeu de stratégie où deux joueurs s'affrontent pour couler les bateaux de l'adversaire. Chaque joueur dispose d'une grille de 10x10 sur laquelle il place 5 bateaux de différentes tailles. Le but du jeu est de couler tous les bateaux de l'adversaire en tirant sur les cases de sa grille.
+Bataille Navale est un jeu de stratégie où deux joueurs s'affrontent pour couler les bateaux de l'adversaire. Chaque joueur dispose d'une grille de 10x10 sur laquelle il place 5 bateaux de différentes tailles. Le but du jeu est de couler tous les bateaux de l'adversaire en tirant sur les cases de sa grille.
 
 ## Installation
 
@@ -9,8 +9,8 @@ Pour installer le jeu, suivez ces étapes :
 
 1. **Clonez le dépôt** : 
    ```bash
-   git clone https://github.com/JinSeeng/BattleShip.git
-   cd BattleShip
+   git clone https://github.com/votre-utilisateur/bataille-navale.git
+   cd bataille-navale
    ```
 
 2. **Assurez-vous d'avoir Python installé** :
@@ -21,7 +21,7 @@ Pour installer le jeu, suivez ces étapes :
 Pour lancer le jeu, exécutez le script Python :
 
 ```bash
-python BattleShipGAME.py
+python main.py
 ```
 
 Assurez-vous que vous êtes dans le répertoire du projet.
